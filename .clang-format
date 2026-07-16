@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://www.schemastore.org/clang-format-21.x.json
+---
+BasedOnStyle: Google
+
+Language: Cpp
+Standard: c++17
+
+ColumnLimit: 80
+IndentWidth: 2
+UseTab: Never
+
+# Function parameters - pack inline or one per line
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortFunctionsOnASingleLine: Empty
+
+BinPackParameters: OnePerLine
+BinPackArguments: false
+PackConstructorInitializers: CurrentLine
+
+# Pointer and reference alignment
+DerivePointerAlignment: false
+PointerAlignment: Right
+ReferenceAlignment: Right
