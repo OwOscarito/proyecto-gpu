@@ -26,7 +26,7 @@ class ClRunner {
   template <typename T>
   std::vector<T> read_buffer(const std::string &buffer_name);
 
-  void run_kernel();
+  void run_kernel(size_t global_size, size_t local_size, cl_uint work_dim);
 
  private:
   cl_platform_id platform;

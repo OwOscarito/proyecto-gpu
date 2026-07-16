@@ -55,11 +55,11 @@ void ClRunner::init() {
   // Init OpenCL Device
   cl_uint num_devices;
   err = clGetDeviceIDs(
-      platform, CL_DEVICE_TYPE_GPU, 1, &this->device, &num_devices);
+      this->platform, CL_DEVICE_TYPE_GPU, 1, &this->device, &num_devices);
   if (err != CL_SUCCESS || num_devices == 0) {
     // CPU Fallback
     err = clGetDeviceIDs(
-        platform, CL_DEVICE_TYPE_CPU, 1, &this->device, &num_devices);
+        this->platform, CL_DEVICE_TYPE_CPU, 1, &this->device, &num_devices);
     check_error(err, "Failed to get any OpenCL device");
   }
 
@@ -78,7 +78,7 @@ void ClRunner::init() {
       this->context, this->device, properties, &err);
   check_error(err, "Failed to create command queue");
 
-  std::cout << "OpenCL initialized successfully! (◕‿◕)" << std::endl;
+  std::cout << "OpenCL initialized successfully" << std::endl;
 }
 
 void ClRunner::setup_kernel(const fs::path &kernel_path,
@@ -94,7 +94,7 @@ void ClRunner::setup_kernel(const fs::path &kernel_path,
 
   cl_int err;
   this->program =
-      clCreateProgramWithSource(context, 1, &kernel_src, nullptr, &err);
+      clCreateProgramWithSource(this->context, 1, &kernel_src, nullptr, &err);
   check_error(err, "Failed to create program");
 
   err = clBuildProgram(program, 1, &this->device, nullptr, nullptr, nullptr);
@@ -148,9 +148,44 @@ void ClRunner::write_buffer(const std::string &name, const void *host_ptr) {
 void ClRunner::write_buffer(const std::string &name,
                             const void *host_ptr,
                             size_t size) {
-  auto buffer = buffers.at(name);
+  auto buffer = this->buffers.at(name);
 
   cl_int err = clEnqueueWriteBuffer(
-      queue, buffer, CL_TRUE, 0, size, host_ptr, 0, nullptr, nullptr);
+      this->queue, buffer, CL_TRUE, 0, size, host_ptr, 0, nullptr, nullptr);
   check_error(err, "Couldn't write buffer: " + name);
+}
+
+void ClRunner::run_kernel(size_t global_size,
+                          size_t local_size,
+                          cl_uint work_dim) {
+  if (!this->kernel) {
+    throw std::runtime_error("No kernel loaded!");
+  }
+
+  if (local_size == 0) {
+    cl_uint max_wg_size;
+    cl_int err = clGetDeviceInfo(device,
+                                 CL_DEVICE_MAX_WORK_GROUP_SIZE,
+                                 sizeof(max_wg_size),
+                                 &max_wg_size,
+                                 nullptr);
+    check_error(err, "Couldn't get device info");
+
+    local_size = std::min((size_t)256, (size_t)max_wg_size);
+  }
+
+  // 2. Enqueue the kernel execution
+  cl_int err = clEnqueueNDRangeKernel(this->queue,
+                                      this->kernel,
+                                      work_dim,
+                                      nullptr,
+                                      &global_size,  // Work-items total
+                                      &local_size,  // Work-items per work-group
+                                      0,
+                                      nullptr,
+                                      nullptr);
+  check_error(err, "Coudln't to enqueue kernel");
+
+  err = clFinish(this->queue);
+  check_error(err, "Coudln't finish queue");
 }
