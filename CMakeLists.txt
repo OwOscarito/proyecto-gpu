@@ -30,7 +30,8 @@ if(NOT CImg_POPULATED)
 endif()
 
 ### ----- OpenCL -----
-find_package(OpenCL REQUIRED)
+find_package(OpenCL 3.0 REQUIRED)
+set(CL_TARGET_OPENCL_VERSION 300)
 
 ### ----- Executable -----
 add_executable(ascii
