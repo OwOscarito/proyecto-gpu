@@ -16,22 +16,26 @@ FetchContent_Declare(
   GIT_TAG v3.2
 )
 FetchContent_MakeAvailable(argparse)
+
+
 FetchContent_Declare(
-  CImg
-  GIT_REPOSITORY https://github.com/GreycLab/CImg.git
-  GIT_TAG v.4.0.2
-  #FIND_PACKAGE_ARGS NAMES CImg
+    cimg
+    GIT_REPOSITORY https://github.com/GreycLab/CImg.git
+    GIT_TAG v.4.0.2
 )
-FetchContent_GetProperties(CImg)
-if(NOT CImg_POPULATED)
-  FetchContent_MakeAvailable(CImg)
-  add_library(CImg INTERFACE)
-  target_include_directories(CImg INTERFACE ${CImg_SOURCE_DIR})
-endif()
+
+FetchContent_MakeAvailable(cimg)
+
+# CImg es una biblioteca basada principalmente en encabezados.
+add_library(cimg_headers INTERFACE)
+
+target_include_directories(cimg_headers
+    SYSTEM INTERFACE
+        "${cimg_SOURCE_DIR}"
+)
 
 ### ----- OpenCL -----
 find_package(OpenCL 3.0 REQUIRED)
-set(CL_TARGET_OPENCL_VERSION 300)
 
 ### ----- Executable -----
 add_executable(ascii
@@ -43,4 +47,11 @@ target_link_libraries(ascii
   PRIVATE
     argparse::argparse
     OpenCL::OpenCL
+    cimg_headers
+)
+
+target_compile_definitions(ascii
+    PRIVATE
+        CL_TARGET_OPENCL_VERSION=300
+        cimg_display=0
 )
