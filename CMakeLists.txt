@@ -43,6 +43,11 @@ add_executable(ascii
     src/ascii/cl_runner.cpp
 )
 
+target_include_directories(ascii
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
+
 target_link_libraries(ascii
   PRIVATE
     argparse::argparse
@@ -54,4 +59,26 @@ target_compile_definitions(ascii
     PRIVATE
         CL_TARGET_OPENCL_VERSION=300
         cimg_display=0
+)
+
+### ----- Image loader test -----
+add_executable(image_test
+    src/test_image.cpp
+    src/image_loader.cpp
+)
+
+target_include_directories(image_test
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
+
+target_link_libraries(image_test
+    PRIVATE
+        cimg_headers
+)
+
+target_compile_definitions(image_test
+    PRIVATE
+        cimg_display=0
+        CAT_IMAGE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/assets/cat.png"
 )
