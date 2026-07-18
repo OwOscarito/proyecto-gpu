@@ -1,4 +1,4 @@
-#include "cl_runner.h"
+#include "cl_runner.hpp"
 
 #include <CL/cl.h>
 #include <CL/cl_platform.h>
@@ -13,19 +13,17 @@
 
 namespace fs = std::filesystem;
 
-ClRunner::ClRunner()
-    : platform(nullptr),
-      device(nullptr),
-      context(nullptr),
-      queue(nullptr),
-      program(nullptr),
-      kernel(nullptr) {}
+ClRunner::ClRunner() {}
 
 ClRunner::~ClRunner() {
-  for (auto &[name, buf] : buffers) {
-    clReleaseMemObject(buf);
+  for (auto buffer : this->buffers) {
+    clReleaseMemObject(buffer);
   }
-  if (this->kernel) clReleaseKernel(kernel);
+  buffers.clear();
+
+  for (auto kernel : this->kernels) {
+    clReleaseKernel(kernel);
+  }
   if (this->program) clReleaseProgram(program);
   if (this->queue) clReleaseCommandQueue(queue);
   if (this->context) clReleaseContext(context);
@@ -33,10 +31,11 @@ ClRunner::~ClRunner() {
 
 void ClRunner::check_error(cl_int err, const std::string &msg) {
   if (err != CL_SUCCESS) {
-    throw std::runtime_error(msg + " [Code: " + std::to_string(err) + "]");
+    throw std::runtime_error("OpenCL Error [Code: " + std::to_string(err) +
+                             "]:" + msg);
   }
 }
-bool ClRunner::init_device(std::vector<cl_platform_id> platforms,
+bool ClRunner::init_device(std::vector<cl_platform_id> &platforms,
                            cl_device_type device_type) {
   cl_int err;
   for (std::size_t i = 0; i < platforms.size(); ++i) {
@@ -66,13 +65,13 @@ void ClRunner::init() {
       !init_device(platforms, CL_DEVICE_TYPE_DEFAULT) &&
       !init_device(platforms, CL_DEVICE_TYPE_CPU) &&
       !init_device(platforms, CL_DEVICE_TYPE_ALL)) {
-    throw std::runtime_error("Couldn't set device");
+    throw std::runtime_error("Failed to set device");
   }
 
   // Init OpenCL context
   this->context =
       clCreateContext(nullptr, 1, &this->device, nullptr, nullptr, &err);
-  check_error(err, "Couldn't create context");
+  check_error(err, "Failed to create context");
 
   // Init OpenCL command queue
   cl_queue_properties properties[] = {
@@ -80,31 +79,27 @@ void ClRunner::init() {
       CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | CL_QUEUE_PROFILING_ENABLE,
       0  // Terminator
   };
+
   this->queue = clCreateCommandQueueWithProperties(
       this->context, this->device, properties, &err);
-  check_error(err, "Couldn't create command queue");
-
-  std::cout << "OpenCL initialized successfully" << std::endl;
+  check_error(err, "Failed to create command queue");
 }
 
-void ClRunner::setup_kernel(const fs::path &kernel_path,
-                            const std::string &entrypoint = "main") {
-  std::ifstream kernel_file(kernel_path);
-  if (!kernel_file.is_open()) {
-    throw std::runtime_error("Failed to open kernel file:" +
-                             kernel_path.string());
+void ClRunner::load_program(const fs::path &program_path) {
+  std::ifstream program_file(program_path);
+  if (!program_file.is_open()) {
+    throw std::runtime_error("Failed to open program file [" +
+                             program_path.string() + "]");
   }
   std::ostringstream stream;
-  stream << kernel_file.rdbuf();  // Read the entire file into the stream
-  std::string kernel_string = stream.str();
-  const char *kernel_src = kernel_string.c_str();
+  stream << program_file.rdbuf();
+  std::string program_string = stream.str();
+  const char *program_source = program_string.c_str();
 
   cl_int err;
-  this->program =
-      clCreateProgramWithSource(this->context, 1, &kernel_src, nullptr, &err);
-  check_error(err,
-              "Failed to create program with source [" + kernel_path.string() +
-                  "]:\n" + kernel_string);
+  this->program = clCreateProgramWithSource(
+      this->context, 1, &program_source, nullptr, &err);
+  check_error(err, "Failed to create program [" + program_path.string() + "]");
 
   err = clBuildProgram(program, 1, &this->device, nullptr, nullptr, nullptr);
 
@@ -125,77 +120,49 @@ void ClRunner::setup_kernel(const fs::path &kernel_path,
                           log.data(),
                           nullptr);
     std::cerr << "Kernel build error:\n" << log.data() << std::endl;
-    throw std::runtime_error("Kernel compilation failed");
+    throw std::runtime_error("Program compilation failed");
   }
-
-  this->kernel = clCreateKernel(this->program, entrypoint.c_str(), &err);
-  check_error(err, "Failed to create kernel");
-
-  std::cout << "Kernel loaded" << kernel_path << std::endl;
 }
 
-void ClRunner::set_buffer_argument(cl_uint index,
-                                   const std::string &name,
-                                   size_t size,
-                                   cl_mem_flags flags,
-                                   void *data) {
+cl_kernel ClRunner::load_kernel(const std::string &kernel_name) {
+  cl_int err;
+  cl_kernel kernel = clCreateKernel(this->program, kernel_name.c_str(), &err);
+  check_error(err, "Failed to create kernel [" + kernel_name + "]");
+  this->kernels.push_back(kernel);
+
+  return kernel;
+}
+
+cl_mem ClRunner::create_buffer(size_t size, cl_mem_flags flags, void *data) {
   cl_int err;
   cl_mem buffer = clCreateBuffer(this->context, flags, size, data, &err);
-  check_error(err, "Couldn't create buffer:" + name);
+  check_error(err, "Failed to create buffer");
+  this->buffers.push_back(buffer);
 
-  this->buffers[name] = buffer;
-  this->buffer_sizes[name] = size;
-
-  err = clSetKernelArg(this->kernel, index, sizeof(cl_mem), &buffer);
-  check_error(err, "Couldn't set arg:" + name);
+  return buffer;
 }
 
-void ClRunner::write_buffer(const std::string &name, const void *data) {
-  auto buffer_size = this->buffer_sizes.at(name);
-  write_buffer(name, data, buffer_size);
-}
-
-void ClRunner::write_buffer(const std::string &name,
-                            const void *data,
-                            size_t size) {
-  auto buffer = this->buffers.at(name);
-
+void ClRunner::write_buffer(cl_mem buffer, size_t size, const void *data) {
   cl_int err = clEnqueueWriteBuffer(
       this->queue, buffer, CL_TRUE, 0, size, data, 0, nullptr, nullptr);
-  check_error(err, "Couldn't write buffer: " + name);
+  check_error(err, "Failed to write buffer");
 }
 
-void ClRunner::run_kernel(size_t global_size,
-                          size_t local_size,
+void ClRunner::run_kernel(cl_kernel kernel,
+                          size_t *global_size,
+                          size_t *local_size,
                           cl_uint work_dim) {
-  if (!this->kernel) {
-    throw std::runtime_error("No kernel loaded!");
-  }
-
-  if (local_size == 0) {
-    cl_uint max_groups_size;
-    cl_int err = clGetDeviceInfo(device,
-                                 CL_DEVICE_MAX_WORK_GROUP_SIZE,
-                                 sizeof(max_groups_size),
-                                 &max_groups_size,
-                                 nullptr);
-    check_error(err, "Couldn't get device info");
-
-    local_size = std::min((size_t)256, (size_t)max_groups_size);
-  }
-
-  // 2. Enqueue the kernel execution
   cl_int err = clEnqueueNDRangeKernel(this->queue,
-                                      this->kernel,
+                                      kernel,
                                       work_dim,
                                       nullptr,
-                                      &global_size,  // Work-items total
-                                      &local_size,  // Work-items per work-group
+                                      global_size,  // Work-items total
+                                      local_size,   // Work-items per work-group
                                       0,
                                       nullptr,
                                       nullptr);
-  check_error(err, "Coudln't to enqueue kernel");
+  check_error(err, "Failed to enqueue kernel");
 
   err = clFinish(this->queue);
-  check_error(err, "Coudln't finish queue");
+  check_error(err, "Failed to finish queue");
 }
