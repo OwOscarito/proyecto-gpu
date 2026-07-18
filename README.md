@@ -15,3 +15,6 @@
 cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=YES
 cmake --build build
 ```
+
+build/ascii assets/cat.png -W 8 -H 8 -r cpu
+build/ascii assets/cat.png -W 8 -H 8 -r openCL
