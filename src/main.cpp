@@ -24,12 +24,20 @@ int main(int argc, char *argv[]) {
   parser.add_argument("-r", "--runner")
       .help("Runner to process image")
       .default_value(std::string("OpenCL"));
-  parser.add_argument("-w", "--width")
-      .help("Width of the output ascii")
-      .default_value(0);
-  parser.add_argument("-h", "--height")
-      .help("Height of the output ascii")
-      .default_value(0);
+  //parser.add_argument("-w", "--width")
+  //    .help("Width of the output ascii")
+  //    .default_value(0);
+  //parser.add_argument("-h", "--height")
+  //    .help("Height of the output ascii")
+  //    .default_value(0);
+  parser.add_argument("-W", "--block-width")
+      .help("Width in pixels of each image block")
+      .scan<'i', int>()
+      .default_value(4);
+  parser.add_argument("-H", "--block-height")
+      .help("Height in pixels of each image block")
+      .scan<'i', int>()
+      .default_value(4);
 
   try {
     parser.parse_args(argc, argv);
@@ -40,11 +48,11 @@ int main(int argc, char *argv[]) {
 
   std::string image_path_string = parser.get<std::string>("image-path");
 
-  int output_width = parser.get<int>("width");
-  int output_height = parser.get<int>("height");
+  //int output_width = parser.get<int>("width");
+  //int output_height = parser.get<int>("height");
 
-  const int BLOCK_W = 4;
-  const int BLOCK_H = 4;
+  const int BLOCK_W = parser.get<int>("block-width");
+  const int BLOCK_H = parser.get<int>("block-height");
 
   fs::path image_path(image_path_string);
   int image_width, image_height;
@@ -68,6 +76,7 @@ int main(int argc, char *argv[]) {
   cl_mem image_buffer = cl.create_buffer(
       image_size, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, image);
 
+stbi_image_free(image);
   cl_mem zones_buffer =
       cl.create_buffer(zones_size * sizeof(float), CL_MEM_READ_WRITE);
 
