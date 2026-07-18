@@ -49,6 +49,7 @@ find_package(OpenCL 3.0 REQUIRED)
 add_executable(ascii
     src/main.cpp
     src/ascii/cl_runner.cpp
+    src/ascii/cpu_runner.cpp
 )
 target_link_libraries(ascii
   PRIVATE
