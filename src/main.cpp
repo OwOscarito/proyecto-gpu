@@ -7,9 +7,13 @@
 #include <cstddef>
 #include <iostream>
 #include <string>
+#include <vector>
 
+#include "ascii/ascii_art.hpp"
 #include "ascii/cl_runner.hpp"
 #include "ascii/cpu_runner.hpp"
+
+void print_ascii(AsciiArt ascii) {}
 
 int main(int argc, char *argv[]) {
   argparse::ArgumentParser parser(
@@ -107,35 +111,22 @@ int main(int argc, char *argv[]) {
 
     cl.run_kernel(ascii_kernel, global_2d, local_2d, 2);
 
-    auto ascii = cl.read_buffer<char>(ascii_buffer, zones_size * sizeof(char));
+    AsciiArt ascii;
+    ascii.characters =
+        cl.read_buffer<char>(ascii_buffer, zones_size * sizeof(char));
+    ascii.width = zones_width;
+    ascii.height = zones_height;
 
-    for (int y = 0; y < zones_height; ++y) {
-      for (int x = 0; x < zones_width; ++x) {
-        std::cout
-            << ascii[static_cast<size_t>(y) * static_cast<size_t>(zones_width) +
-                     static_cast<size_t>(x)];
-      }
-
-      std::cout << '\n';
-    }
+    std::cout << ascii;
   }
 
   /*
    * Sequential CPU implementation.
    */
   else if (runner == "CPU" || runner == "cpu") {
-    CpuAsciiResult result =
+    AsciiArt ascii =
         run_cpu(image, image_width, image_height, block_width, block_height);
-
-    for (int y = 0; y < result.height; ++y) {
-      for (int x = 0; x < result.width; ++x) {
-        std::cout << result.characters[static_cast<size_t>(y) *
-                                           static_cast<size_t>(result.width) +
-                                       static_cast<size_t>(x)];
-      }
-
-      std::cout << '\n';
-    }
+    std::cout << ascii;
   }
 
   else {

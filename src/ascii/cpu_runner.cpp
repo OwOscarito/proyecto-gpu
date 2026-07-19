@@ -5,29 +5,29 @@
 #include <stdexcept>
 #include <vector>
 
+#include "ascii_art.hpp"
+
 namespace {
 
 // Debe ser exactamente la misma escala utilizada en el kernel.
 constexpr char ASCII_RAMP[] = " .:-=+*#%@";
 
-constexpr int ASCII_RAMP_SIZE =
-    static_cast<int>(sizeof(ASCII_RAMP) - 1);
+constexpr int ASCII_RAMP_SIZE = static_cast<int>(sizeof(ASCII_RAMP) - 1);
 
 float calculate_luminance(unsigned char red,
                           unsigned char green,
                           unsigned char blue) {
-  return 0.299f * static_cast<float>(red) +
-         0.587f * static_cast<float>(green) +
+  return 0.299f * static_cast<float>(red) + 0.587f * static_cast<float>(green) +
          0.114f * static_cast<float>(blue);
 }
 
 }  // namespace
 
-CpuAsciiResult run_cpu(const unsigned char *image,
-                       int image_width,
-                       int image_height,
-                       int block_width,
-                       int block_height) {
+AsciiArt run_cpu(const unsigned char *image,
+                 int image_width,
+                 int image_height,
+                 int block_width,
+                 int block_height) {
   if (image == nullptr) {
     throw std::invalid_argument("Image pointer cannot be null");
   }
@@ -40,17 +40,14 @@ CpuAsciiResult run_cpu(const unsigned char *image,
     throw std::invalid_argument("Block dimensions must be positive");
   }
 
-  CpuAsciiResult result;
+  AsciiArt result;
 
-  result.width =
-      (image_width + block_width - 1) / block_width;
+  result.width = (image_width + block_width - 1) / block_width;
 
-  result.height =
-      (image_height + block_height - 1) / block_height;
+  result.height = (image_height + block_height - 1) / block_height;
 
-  const std::size_t zones_size =
-      static_cast<std::size_t>(result.width) *
-      static_cast<std::size_t>(result.height);
+  const std::size_t zones_size = static_cast<std::size_t>(result.width) *
+                                 static_cast<std::size_t>(result.height);
 
   /*
    * Este vector representa el mismo buffer intermedio
@@ -96,8 +93,7 @@ CpuAsciiResult run_cpu(const unsigned char *image,
           const unsigned char green = image[pixel_index + 1];
           const unsigned char blue = image[pixel_index + 2];
 
-          luminance_sum +=
-              calculate_luminance(red, green, blue);
+          luminance_sum += calculate_luminance(red, green, blue);
 
           ++pixel_count;
         }
@@ -109,8 +105,7 @@ CpuAsciiResult run_cpu(const unsigned char *image,
           static_cast<std::size_t>(zone_x);
 
       if (pixel_count > 0) {
-        zones[zone_index] =
-            luminance_sum / static_cast<float>(pixel_count);
+        zones[zone_index] = luminance_sum / static_cast<float>(pixel_count);
       }
     }
   }
@@ -127,15 +122,11 @@ CpuAsciiResult run_cpu(const unsigned char *image,
     const float brightness = zones[index];
 
     int character_index = static_cast<int>(
-        brightness / 255.0f *
-        static_cast<float>(ASCII_RAMP_SIZE - 1)
-    );
+        brightness / 255.0f * static_cast<float>(ASCII_RAMP_SIZE - 1));
 
-    character_index =
-        std::clamp(character_index, 0, ASCII_RAMP_SIZE - 1);
+    character_index = std::clamp(character_index, 0, ASCII_RAMP_SIZE - 1);
 
-    result.characters[index] =
-        ASCII_RAMP[character_index];
+    result.characters[index] = ASCII_RAMP[character_index];
   }
 
   return result;

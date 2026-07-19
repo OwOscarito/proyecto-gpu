@@ -48,6 +48,7 @@ find_package(OpenCL 3.0 REQUIRED)
 ### ----- Executable -----
 add_executable(ascii
     src/main.cpp
+    src/ascii/ascii_art.cpp
     src/ascii/cl_runner.cpp
     src/ascii/cpu_runner.cpp
 )

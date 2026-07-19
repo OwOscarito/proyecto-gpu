@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+#include "ascii_art.hpp"
+
 namespace fs = std::filesystem;
 
 class ClRunner {
@@ -85,3 +87,9 @@ std::vector<T> ClRunner::read_buffer(cl_mem buffer, size_t buffer_size) {
 
   return buffer_data;
 }
+
+AsciiArt run_opencl(const unsigned char *image,
+                    int image_width,
+                    int image_height,
+                    int block_width,
+                    int block_height);
