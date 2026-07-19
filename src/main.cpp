@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <chrono>
 
 #include "ascii/ascii_art.hpp"
 #include "ascii/cl_runner.hpp"
@@ -81,10 +82,15 @@ int main(int argc, char *argv[]) {
     size_t zones_size =
         static_cast<size_t>(zones_width) * static_cast<size_t>(zones_height);
 
+    const auto setup_start =std::chrono::steady_clock::now();
+
     ClRunner cl;
     cl.init();
 
-    auto [ascii_kernel] = cl.load_program("./kernel/ascii-gray2.cl", "ascii");
+    auto [ascii_kernel] = cl.load_program("./kernel/ascii-gray.cl", "ascii");
+
+    const auto setup_end = std::chrono::steady_clock::now();
+    const auto processing_start = std::chrono::steady_clock::now();
 
     cl_mem image_buffer = cl.create_buffer(
         image_size, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, image);
@@ -117,6 +123,25 @@ int main(int argc, char *argv[]) {
     ascii.width = zones_width;
     ascii.height = zones_height;
 
+    const auto processing_end = std::chrono::steady_clock::now();
+    const double setup_ms = std::chrono::duration<double, std::milli>(setup_end - setup_start).count();
+    const double processing_ms = std::chrono::duration<double, std::milli>(processing_end - processing_start).count();
+    const double total_ms = setup_ms + processing_ms;
+    std::cerr
+          << "OpenCL setup time: "
+          << setup_ms
+          << " ms\n";
+
+    std::cerr
+          << "OpenCL processing time: "
+          << processing_ms
+          << " ms\n";
+
+    std::cerr
+          << "OpenCL total time: "
+          << total_ms
+          << " ms\n";
+
     std::cout << ascii;
   }
 
@@ -124,8 +149,19 @@ int main(int argc, char *argv[]) {
    * Sequential CPU implementation.
    */
   else if (runner == "CPU" || runner == "cpu") {
+    const auto start = std::chrono::steady_clock::now();
+
     AsciiArt ascii =
         run_cpu(image, image_width, image_height, block_width, block_height);
+
+    const auto end = std::chrono::steady_clock::now();
+    const double elapsed_ms =
+        std::chrono::duration<double, std::milli>(end - start).count();
+
+    std::cerr << "CPU processing time: "
+              << elapsed_ms
+              << " ms\n";
+
     std::cout << ascii;
   }
 
