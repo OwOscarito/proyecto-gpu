@@ -17,23 +17,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(argparse)
 
-
-FetchContent_Declare(
-    cimg
-    GIT_REPOSITORY https://github.com/GreycLab/CImg.git
-    GIT_TAG v.4.0.2
-)
-
-FetchContent_MakeAvailable(cimg)
-
-# CImg es una biblioteca basada principalmente en encabezados.
-add_library(cimg_headers INTERFACE)
-
-target_include_directories(cimg_headers
-    SYSTEM INTERFACE
-        "${cimg_SOURCE_DIR}"
-)
-
 ### ----- stb -----
 FetchContent_Declare(
     stb

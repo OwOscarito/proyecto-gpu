@@ -16,5 +16,10 @@ cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=YES
 cmake --build build
 ```
 
+```sh
+build/ascii --help
+
+# Ejemplos
 build/ascii assets/cat.png -W 8 -H 8 -r cpu
-build/ascii assets/cat.png -W 8 -H 8 -r openCL
+build/ascii assets/cat.png -W 8 -H 8 -r OpenCL
+```

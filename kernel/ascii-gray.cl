@@ -1,5 +1,5 @@
-__constant char DICT[] = " .:-=+*#%@";
-__constant int DICT_LEN = 10;
+__constant char RAMP[] = " .:-=+*#%@";
+__constant int RAMP_LEN = 10;
 
 __kernel void ascii(__global const uchar* image,
                             __global char* ascii,
@@ -26,9 +26,9 @@ __kernel void ascii(__global const uchar* image,
     }
 
     float brightness = (count > 0) ? sum / count : 0.0f;
-    int char_idx = (int)(brightness / 255.0f * (DICT_LEN - 1));
-    char_idx = clamp(char_idx, 0, DICT_LEN - 1);
+    int char_idx = (int)(brightness / 255.0f * (RAMP_LEN - 1));
+    char_idx = clamp(char_idx, 0, RAMP_LEN - 1);
 
     int zone_idx = zy * zones_w + zx;
-    ascii[zone_idx] = DICT[char_idx];
+    ascii[zone_idx] = RAMP[char_idx];
 }

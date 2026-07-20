@@ -43,7 +43,6 @@ AsciiArt run_cpu(const unsigned char *image,
   AsciiArt result;
 
   result.width = (image_width + block_width - 1) / block_width;
-
   result.height = (image_height + block_height - 1) / block_height;
 
   const std::size_t zones_size = static_cast<std::size_t>(result.width) *
@@ -58,8 +57,6 @@ AsciiArt run_cpu(const unsigned char *image,
   /*
    * Primera etapa:
    * calcular la luminosidad promedio de cada bloque.
-   *
-   * Equivale al kernel "zones".
    */
   for (int zone_y = 0; zone_y < result.height; ++zone_y) {
     for (int zone_x = 0; zone_x < result.width; ++zone_x) {
@@ -110,12 +107,6 @@ AsciiArt run_cpu(const unsigned char *image,
     }
   }
 
-  /*
-   * Segunda etapa:
-   * transformar cada luminosidad promedio en un carácter.
-   *
-   * Equivale al kernel "ascii".
-   */
   result.characters.resize(zones_size);
 
   for (std::size_t index = 0; index < zones_size; ++index) {

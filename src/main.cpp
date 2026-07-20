@@ -4,17 +4,15 @@
 #include <stb_image.h>
 
 #include <argparse/argparse.hpp>
+#include <chrono>
 #include <cstddef>
 #include <iostream>
 #include <string>
 #include <vector>
-#include <chrono>
 
 #include "ascii/ascii_art.hpp"
 #include "ascii/cl_runner.hpp"
 #include "ascii/cpu_runner.hpp"
-
-void print_ascii(AsciiArt ascii) {}
 
 int main(int argc, char *argv[]) {
   argparse::ArgumentParser parser(
@@ -48,7 +46,10 @@ int main(int argc, char *argv[]) {
 
   const std::string image_path = parser.get<std::string>("image-path");
 
-  const std::string runner = parser.get<std::string>("runner");
+  std::string runner = parser.get<std::string>("runner");
+  for (auto &c : runner) {
+    c = std::tolower(static_cast<unsigned char>(c));
+  }
 
   const int block_width = parser.get<int>("block-width");
   const int block_height = parser.get<int>("block-height");
@@ -72,7 +73,7 @@ int main(int argc, char *argv[]) {
   /*
    * OpenCL implementation.
    */
-  if (runner == "OpenCL" || runner == "opencl") {
+  if (runner == "opencl") {
     size_t image_size = static_cast<size_t>(image_width) *
                         static_cast<size_t>(image_height) * 3 *
                         sizeof(cl_uchar);
@@ -82,14 +83,16 @@ int main(int argc, char *argv[]) {
     size_t zones_size =
         static_cast<size_t>(zones_width) * static_cast<size_t>(zones_height);
 
-    const auto setup_start =std::chrono::steady_clock::now();
-
+    const auto init_start = std::chrono::steady_clock::now();
     ClRunner cl;
     cl.init();
+    const auto init_end = std::chrono::steady_clock::now();
+
+    const auto kernel_start = std::chrono::steady_clock::now();
 
     auto [ascii_kernel] = cl.load_program("./kernel/ascii-gray.cl", "ascii");
 
-    const auto setup_end = std::chrono::steady_clock::now();
+    const auto kernel_end = std::chrono::steady_clock::now();
     const auto processing_start = std::chrono::steady_clock::now();
 
     cl_mem image_buffer = cl.create_buffer(
@@ -124,23 +127,20 @@ int main(int argc, char *argv[]) {
     ascii.height = zones_height;
 
     const auto processing_end = std::chrono::steady_clock::now();
-    const double setup_ms = std::chrono::duration<double, std::milli>(setup_end - setup_start).count();
-    const double processing_ms = std::chrono::duration<double, std::milli>(processing_end - processing_start).count();
-    const double total_ms = setup_ms + processing_ms;
-    std::cerr
-          << "OpenCL setup time: "
-          << setup_ms
-          << " ms\n";
-
-    std::cerr
-          << "OpenCL processing time: "
-          << processing_ms
-          << " ms\n";
-
-    std::cerr
-          << "OpenCL total time: "
-          << total_ms
-          << " ms\n";
+    const double init_ms =
+        std::chrono::duration<double, std::milli>(init_end - init_start)
+            .count();
+    const double kernel_ms =
+        std::chrono::duration<double, std::milli>(kernel_end - kernel_start)
+            .count();
+    const double processing_ms = std::chrono::duration<double, std::milli>(
+                                     processing_end - processing_start)
+                                     .count();
+    const double total_ms = init_ms + kernel_ms + processing_ms;
+    std::cerr << "OpenCL init time: " << init_ms << " ms\n";
+    std::cerr << "OpenCL setup time: " << kernel_ms << " ms\n";
+    std::cerr << "OpenCL processing time: " << processing_ms << " ms\n";
+    std::cerr << "OpenCL total time: " << total_ms << " ms\n";
 
     std::cout << ascii;
   }
@@ -158,9 +158,7 @@ int main(int argc, char *argv[]) {
     const double elapsed_ms =
         std::chrono::duration<double, std::milli>(end - start).count();
 
-    std::cerr << "CPU processing time: "
-              << elapsed_ms
-              << " ms\n";
+    std::cerr << "CPU processing time: " << elapsed_ms << " ms\n";
 
     std::cout << ascii;
   }
