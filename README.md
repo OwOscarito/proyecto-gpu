@@ -1,6 +1,6 @@
-# Proyecto
+# Proyecto: Algoritmo en GPU para generación de arte ASCII
 
-# Algoritmo en GPU para generación de arte ASCII
+Integrantes: Marcelo Chuang, Oscar Garrido
 
 ## Requisitos
 
@@ -16,6 +16,8 @@
 cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=YES
 cmake --build build
 ```
+
+## Ejecucion
 
 ```sh
 build/ascii -h
