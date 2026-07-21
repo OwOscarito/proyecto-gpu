@@ -137,12 +137,13 @@ int main(int argc, char *argv[]) {
                                      processing_end - processing_start)
                                      .count();
     const double total_ms = init_ms + kernel_ms + processing_ms;
+
+    std::cout << ascii;
+
     std::cerr << "OpenCL init time: " << init_ms << " ms\n";
     std::cerr << "OpenCL setup time: " << kernel_ms << " ms\n";
     std::cerr << "OpenCL processing time: " << processing_ms << " ms\n";
     std::cerr << "OpenCL total time: " << total_ms << " ms\n";
-
-    std::cout << ascii;
   }
 
   /*
@@ -158,9 +159,9 @@ int main(int argc, char *argv[]) {
     const double elapsed_ms =
         std::chrono::duration<double, std::milli>(end - start).count();
 
-    std::cerr << "CPU processing time: " << elapsed_ms << " ms\n";
-
     std::cout << ascii;
+
+    std::cerr << "CPU processing time: " << elapsed_ms << " ms\n";
   }
 
   else {
