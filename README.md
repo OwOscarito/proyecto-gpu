@@ -32,3 +32,7 @@ build/ascii assets/dog.png -W 4 -H 4 -r OpenCL
 build/ascii assets/landscape.jpg -W 8 -H 8 -r CPU
 build/ascii assets/landscape.jpg -W 8 -H 8 -r OpenCL
 ```
+
+## Demo y presentacion
+
+Revisar dentro de la carpeta docs/ el video: demo.mp4 y la presentacion: presentacion_proyecto_gpu.pdf
