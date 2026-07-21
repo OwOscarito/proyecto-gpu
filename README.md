@@ -29,6 +29,6 @@ build/ascii assets/cat.png -W 4 -H 4 -r OpenCL
 build/ascii assets/dog.png -W 4 -H 4 -r CPU
 build/ascii assets/dog.png -W 4 -H 4 -r OpenCL
 
-build/ascii assets/landscape.png -W 8 -H 8 -r CPU
-build/ascii assets/landscape.png -W 8 -H 8 -r OpenCL
+build/ascii assets/landscape.jpg -W 8 -H 8 -r CPU
+build/ascii assets/landscape.jpg -W 8 -H 8 -r OpenCL
 ```
